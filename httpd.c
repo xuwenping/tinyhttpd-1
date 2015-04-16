@@ -62,6 +62,7 @@ void *accept_request(void *tclient)
                     * program */
  char *query_string = NULL;
 
+ // get data form client socket fd
  numchars = get_line(client, buf, sizeof(buf));
  i = 0; j = 0;
  while (!ISspace(buf[j]) && (i < sizeof(method) - 1))
@@ -71,6 +72,8 @@ void *accept_request(void *tclient)
  }
  method[i] = '\0';
 
+ printf("the method is %s\n", method);
+  // if neither contain 'get' nor contain 'post', will tip: unimplemented 
  if (strcasecmp(method, "GET") && strcasecmp(method, "POST"))
  {
   unimplemented(client);
@@ -81,23 +84,30 @@ void *accept_request(void *tclient)
   cgi = 1;
 
  i = 0;
+ // skip space / '\n' / '\r' / '\t'
  while (ISspace(buf[j]) && (j < sizeof(buf)))
   j++;
+ // get url
  while (!ISspace(buf[j]) && (i < sizeof(url) - 1) && (j < sizeof(buf)))
  {
   url[i] = buf[j];
   i++; j++;
  }
  url[i] = '\0';
+ printf("the url is %s\n", url);
 
+
+ // GET func process
  if (strcasecmp(method, "GET") == 0)
  {
   query_string = url;
   while ((*query_string != '?') && (*query_string != '\0'))
    query_string++;
+  // on GET, after '?', it is param
   if (*query_string == '?')
   {
    cgi = 1;
+   // because the query_string is point to url, url is a char array
    *query_string = '\0';
    query_string++;
   }
@@ -124,7 +134,7 @@ void *accept_request(void *tclient)
   else
    execute_cgi(client, path, method, query_string);
  }
-
+ printf("Pathe is %s\n", path);
  close(client);
 
  return NULL;
@@ -310,15 +320,17 @@ int get_line(int sock, char *buf, int size)
  int i = 0;
  char c = '\0';
  int n;
-
+ // why get data one char bye one char?
  while ((i < size - 1) && (c != '\n'))
  {
   n = recv(sock, &c, 1, 0);
   /* DEBUG printf("%02X\n", c); */
   if (n > 0)
   {
+   // if appear '\r', continue operate, because the end line may be '\r\n' 
    if (c == '\r')
    {
+    // use flag MSG_PEEK, next receive call will return the same data 
     n = recv(sock, &c, 1, MSG_PEEK);
     /* DEBUG printf("%02X\n", c); */
     if ((n > 0) && (c == '\n'))
@@ -489,14 +501,18 @@ int main(void)
 
  while (1)
  {
-  client_sock = accept(server_sock,
-                       (struct sockaddr *)&client_name,
-                       &client_name_len);
-  if (client_sock == -1)
-   error_die("accept");
- /* accept_request(client_sock); */
- if (pthread_create(&newthread , NULL, accept_request, (void *)&client_sock) != 0)
-   perror("pthread_create");
+   client_sock = accept(server_sock,
+                        (struct sockaddr *)&client_name,
+                        &client_name_len);
+   if (client_sock == -1)
+   {
+     error_die("accept");
+   }
+   /* accept_request(client_sock); */
+   if (pthread_create(&newthread , NULL, accept_request, (void *)&client_sock) != 0)
+   {
+     perror("pthread_create");
+   }
  }
 
  close(server_sock);
