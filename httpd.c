@@ -217,6 +217,7 @@ void error_die(const char *sc)
 void execute_cgi(int client, const char *path,
                  const char *method, const char *query_string)
 {
+ printf("enter execute_cgi\n");
  char buf[1024];
  int cgi_output[2];
  int cgi_input[2];
@@ -236,6 +237,7 @@ void execute_cgi(int client, const char *path,
   numchars = get_line(client, buf, sizeof(buf));
   while ((numchars > 0) && strcmp("\n", buf))
   {
+   printf("the numchars is %d, the buf is %s\n", numchars, buf);
    buf[15] = '\0';
    if (strcasecmp(buf, "Content-Length:") == 0)
     content_length = atoi(&(buf[16]));
@@ -265,6 +267,7 @@ void execute_cgi(int client, const char *path,
  }
  if (pid == 0)  /* child: CGI script */
  {
+  printf("enter execute_cgi child\n");
   char meth_env[255];
   char query_env[255];
   char length_env[255];
@@ -283,9 +286,11 @@ void execute_cgi(int client, const char *path,
    sprintf(length_env, "CONTENT_LENGTH=%d", content_length);
    putenv(length_env);
   }
+  printf("the meth_env is %s, the length_env is %s, the path is %s\n", meth_env, length_env, path);
   execl(path, path, NULL);
   exit(0);
  } else {    /* parent */
+  printf("enter execute_cgi parent\n");
   close(cgi_output[1]);
   close(cgi_input[0]);
   if (strcasecmp(method, "POST") == 0)
@@ -405,6 +410,7 @@ void not_found(int client)
 /**********************************************************************/
 void serve_file(int client, const char *filename)
 {
+ printf("enter serve_file\n");
  FILE *resource = NULL;
  int numchars = 1;
  char buf[1024];
